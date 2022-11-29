@@ -7,21 +7,22 @@ import numpy as np
 APPID = os.getenv('OWD_KEY')
 ENDPOINT = "https://api.openweathermap.org/data/2.5/onecall"
 
-columns = ["dt",
-           "sunrise",
-           "sunset",
-           "temp",
-           "feels_like",
-           "pressure",
-           "humidity",
-           "dew_point",
-           "uvi",
-           "clouds",
-           "visibility",
-           "wind_speed",
-           "wind_deg",
-           "wind_gust",
-           ]
+columns = [
+    "dt",
+    "sunrise",
+    "sunset",
+    "temp",
+    "feels_like",
+    "pressure",
+    "humidity",
+    "dew_point",
+    "uvi",
+    "clouds",
+    "visibility",
+    "wind_speed",
+    "wind_deg",
+    "wind_gust",
+]
 
 
 class WeatherManager:
@@ -33,6 +34,7 @@ class WeatherManager:
         self.valence = (0, 1)
         self.today = self.get_current_weather()
         self.historic_average = self.get_historic_weather()
+        self.deltas = self.calc_delta()
 
     def get_current_weather(self):
         today_dict = {}
@@ -51,7 +53,7 @@ class WeatherManager:
         curr_data = curr_data.json()
 
         for column in columns:
-            value = curr_data['current'][column]
+            value = float(curr_data['current'][column])
             today_dict[column] = value
 
         return today_dict
@@ -77,7 +79,7 @@ class WeatherManager:
             hist_data = hist_data.json()
 
             for column in columns:
-                value = hist_data['current'][column]
+                value = float(hist_data['current'][column])
                 past_five_dict[column].append(value)
 
         average_dict = {}
@@ -87,3 +89,14 @@ class WeatherManager:
 
         return average_dict
 
+    def calc_delta(self):
+        delta = {}
+        for column in columns:
+            dividend = self.today[column] - self.historic_average[column]
+            divisor = self.today[column] + self.historic_average[column]
+            if not divisor == 0:
+                delta[column] = dividend / divisor
+            else:
+                delta[column] = dividend
+
+        return delta

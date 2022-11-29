@@ -5,17 +5,6 @@ import pandas as pd
 from datetime import datetime
 import weather_manager
 
-# THE SOURCE PLAYLISTS
-SOURCES = ['6tTRqTBA9Gb95lgFzWEOT5', '5GP2yjY95zhnFiDXjBdgxu']
-TARGET = '4rJtEiVdLyiimTiNiAyE5E'
-
-# Ranges as min/max tuples.
-RANGES = {
-    'energy': (0, 0.4),
-    'valence': (0, 0.4),
-    'danceability': (0, 0.4)
-}
-
 # Scope rights
 SCOPE = ["user-library-modify", "playlist-modify-public", "playlist-modify-private", "user-modify-playback-state"]
 
@@ -27,7 +16,7 @@ class SpotifyManager:
 
     # filters track data by a list of filters (by),
     # these need to be in RANGES dict as well as in the spotify audio features
-    def filter_playlist(self, tracks, by):
+    def filter_playlist(self, tracks, ranges, by=['energy', 'valence', 'danceability']):
         matched_results = []
 
         for index, item in enumerate(tracks):
@@ -38,7 +27,7 @@ class SpotifyManager:
             addable = True
 
             for filter in by:
-                if not RANGES[filter][0] < features[filter] < RANGES[filter][1]:
+                if not ranges[filter][0] < features[filter] < ranges[filter][1]:
                     addable = False
 
             if addable:
@@ -46,7 +35,7 @@ class SpotifyManager:
 
         return matched_results
 
-    # aggregates sources into a large list of tracks
+    # aggregates sources
     def gather_tracks(self, sources):
         tracks = []
         for list_id in sources:
@@ -58,10 +47,12 @@ class SpotifyManager:
 
         return tracks
 
-    def update_playlist(self):
-        tracks = self.gather_tracks(SOURCES)
-        matches = self.filter_playlist(tracks, ['valence', 'energy', 'danceability'])
-        # Creates playlist:
-        # TARGET = sp.user_playlist_create(user_id, "low energy", public=False)['id']
-        self.sp.playlist_change_details(TARGET, name=f"CUSTOM FOR {datetime.now().strftime('%d %b, %y')}")
-        self.sp.playlist_replace_items(TARGET, matches)
+    def update_playlist(self, tracklist, target_playlist=None):
+        if target_playlist:
+            targ = target_playlist
+            self.sp.playlist_change_details(targ, name=f"CUSTOM FOR {datetime.now().strftime('%d %b, %y')}")
+
+        else:
+            targ = self.sp.user_playlist_create(user_id, "low energy", public=False)['id']
+
+        self.sp.playlist_replace_items(targ, tracklist)
