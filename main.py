@@ -8,15 +8,9 @@ from spotify_manager import SpotifyManager
 
 ### SPOTIFY
 # source and target playlists
-SOURCES = ['6tTRqTBA9Gb95lgFzWEOT5', '5GP2yjY95zhnFiDXjBdgxu']
+SOURCES = ['6tTRqTBA9Gb95lgFzWEOT5'] #, '5GP2yjY95zhnFiDXjBdgxu', '12YHegwMeIZJvA95VHmyz6'] #normal playlists
+# SOURCES = ['05yEXmAndl3mWwTmOhH4dl'] # small playlist
 TARGET = '4rJtEiVdLyiimTiNiAyE5E'
-
-# Ranges as min/max tuples.
-RANGES = {
-    'energy': (0, 0.4),
-    'valence': (0, 0.4),
-    'danceability': (0, 0.4)
-}
 
 ### WEATHER
 # User lon lat data
@@ -24,12 +18,21 @@ LON = 5.1214
 LAT = 52.0907
 
 sm = SpotifyManager()
-wm = WeatherManager(lon=LON, lat=LAT)
+wm = WeatherManager(lon=LON, lat=LAT, treshold=0.2)
 
+# get range tuples to filter features on
+ranges = wm.feature_ranges
 tracks = sm.gather_tracks(SOURCES)
-filtered_tracks = sm.filter_playlist(tracks=tracks, by=['energy', 'valence', 'danceability'], ranges=RANGES)
-sm.update_playlist(tracklist=filtered_tracks, target_playlist=TARGET)
+filtered_tracks = sm.filter_playlist(tracks=tracks, by=['energy', 'valence'], ranges=ranges)
 
-print("\n\n\n\n", wm.today, "\n\n\n\n", wm.historic_average, "\n\n\n\n", wm.deltas)
 
+
+
+
+
+
+#sm.update_playlist(tracklist=filtered_tracks, target_playlist=TARGET)
+
+# pprint(wm.today)
+# pprint(wm.historic_average)
 # sm.update_playlist()
