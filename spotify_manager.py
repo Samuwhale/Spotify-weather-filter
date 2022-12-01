@@ -19,48 +19,37 @@ class SpotifyManager:
 
     # filters track data by a list of filters (by),
     # these need to be in RANGES dict as well as in the spotify audio features
-    def filter_playlist(self, ranges, tracks_df=None, by=['energy', 'valence', 'danceability'], target=100):
+    def filter_playlist(self, ranges, tracks_df, by=['energy', 'valence', 'danceability'], target=100):
+        print(f"Starting Ranges: {ranges}")
+
         if target > 100:
             target = 100
         if target < 1:
             target = 1
-        matched_results = []
-
-        ## THERE IS SOMETHING WRONG HERE VVVV
-        if not tracks_df is None:
-            tracks_df = tracks_df
-        else:
-            tracks_df = self.last_tracklist_df
-
+        print(f"Starting target: {target}")
         selection = tracks_df
-
-        print(f"Filtering results for {ranges}")
-        if len(tracks_df) < target:
-            print(f"Source smaller than target, consider adjusting target")
-            return selection
-
         for feature in by:
             low_bound = ranges[feature][0]
             upper_bound = ranges[feature][1]
             print(f"feature: {feature}", low_bound, upper_bound)
             selection = selection.loc[(selection[feature] <= upper_bound) & (selection[feature] >= low_bound)]
-            print(selection[by])
 
         if len(selection) > target:
-            print(f"Too many results, sampling {target} songs.")
+            print(f"IF Too many results, sampling {target} songs.")
             selection = selection.sample(target)
-
-        while len(selection) < target:
-            print(f"Too little results ({len(selection)}), easing ranges.")
+            return selection
+        elif len(selection) < target:
+            print(f"ELIF Too little results ({len(selection)}), easing ranges.")
             new_ranges = {}
             for key in ranges:
+                print(ranges[key])
                 new_ranges[key] = self.ease_ranges(ranges[key], 0.02)
-
             print(f"OLD RANGES: {ranges}\nNEW RANGES: {new_ranges}")
-            self.filter_playlist(new_ranges, tracks_df, by, target)
+            return self.filter_playlist(ranges=new_ranges, tracks_df=tracks_df, by=by, target=target)
+        else:
+            print(f"ELSE: Returning selection: {selection}")
+            return selection
 
-        print(f"selection is: {selection}")
-        return selection
 
     # gets a tuple and widens the range by the ease factor
     def ease_ranges(self, range_tuple, ease_factor):
@@ -114,5 +103,6 @@ class SpotifyManager:
             targ = self.sp.user_playlist_create(self.user_id, "low energy", public=False)['id']
 
         tracklist = tracklist['id'].tolist()
+        print(tracklist)
         self.sp.playlist_replace_items(targ, tracklist)
         print(f"Succesfully added {len(tracklist)} songs to playlist {self.sp.playlist(targ)['name']}")

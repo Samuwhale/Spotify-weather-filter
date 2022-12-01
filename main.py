@@ -27,7 +27,7 @@ print(f"Ranges are: {ranges}")
 tracks = sm.gather_tracks(SOURCES)
 track_df = sm.get_track_features(tracks)
 filtered_tracks = sm.filter_playlist(by=['energy', 'valence'], ranges=ranges, tracks_df=track_df, target=SONG_TARGET)
-
+print("Filtered trackz", filtered_tracks)
 sm.update_playlist(tracklist=filtered_tracks, target_playlist=TARGET)
 
 # pprint(wm.today)
