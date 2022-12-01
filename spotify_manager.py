@@ -14,53 +14,53 @@ class SpotifyManager:
     def __init__(self):
         self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=SCOPE))
         self.user_id = self.sp.current_user()['id']
+        self.last_tracklist = ""
+        self.last_tracklist_df = ""
 
     # filters track data by a list of filters (by),
     # these need to be in RANGES dict as well as in the spotify audio features
-    def filter_playlist(self, tracks, ranges, by=['energy', 'valence', 'danceability']):
+    def filter_playlist(self, ranges, tracks_df=None, by=['energy', 'valence', 'danceability'], target=100):
+        if target > 100:
+            target = 100
+        if target < 1:
+            target = 1
         matched_results = []
-        print(len(tracks))
 
-        for index, item in enumerate(tracks):
-            track_id = item['track']['id']
-            features = self.sp.audio_features(track_id)[0]
-            print(f"{index + 1}/{len(tracks)}: {item['track']['name']} - {item['track']['artists'][0]['name']} ")
+        ## THERE IS SOMETHING WRONG HERE VVVV
+        if not tracks_df is None:
+            tracks_df = tracks_df
+        else:
+            tracks_df = self.last_tracklist_df
 
-            addable = True
+        selection = tracks_df
 
-            for feature in by:
-                if not ranges[feature][0] < features[feature] < ranges[feature][1]:
-                    addable = False
+        print(f"Filtering results for {ranges}")
+        if len(tracks_df) < target:
+            print(f"Source smaller than target, consider adjusting target")
+            return selection
 
-            if addable:
-                matched_results.append(track_id)
-        print("Matched resultss: ", matched_results)
+        for feature in by:
+            low_bound = ranges[feature][0]
+            upper_bound = ranges[feature][1]
+            print(f"feature: {feature}", low_bound, upper_bound)
+            selection = selection.loc[(selection[feature] <= upper_bound) & (selection[feature] >= low_bound)]
+            print(selection[by])
 
-        if len(matched_results) > 125:
-            print(f"old ranges: {ranges} resulted in too many ({len(matched_results)}) results, tightening them up.")
+        if len(selection) > target:
+            print(f"Too many results, sampling {target} songs.")
+            selection = selection.sample(target)
+
+        while len(selection) < target:
+            print(f"Too little results ({len(selection)}), easing ranges.")
             new_ranges = {}
-            for feature in by:
-                new_ranges[feature] = self.ease_ranges(ranges[feature], -0.10)
-            print(f"Trying now with: {new_ranges}.")
-            self.filter_playlist(tracks, new_ranges, by)
-        elif len(matched_results) > 100:
-            matched_results = matched_results[:100]
+            for key in ranges:
+                new_ranges[key] = self.ease_ranges(ranges[key], 0.02)
 
-        if len(matched_results) < 50:
-            if len(matched_results) > len(tracks) / 2:
-                print(f"ranges: {ranges} resulted in {len(matched_results)}. Small playlist, so we'll stop here.")
-                return matched_results
-            else:
-                print(f"old ranges: {ranges} resulted in {len(matched_results)}. Maybe we were too strict, easing them.")
-                new_ranges = ranges
-                for feature in by:
-                    new_ranges[feature] = self.ease_ranges(ranges[feature], 0.10)
-                print(f"Trying now with: {new_ranges}.")
-                self.filter_playlist(tracks, new_ranges, by)
+            print(f"OLD RANGES: {ranges}\nNEW RANGES: {new_ranges}")
+            self.filter_playlist(new_ranges, tracks_df, by, target)
 
-
-
-        return matched_results
+        print(f"selection is: {selection}")
+        return selection
 
     # gets a tuple and widens the range by the ease factor
     def ease_ranges(self, range_tuple, ease_factor):
@@ -81,7 +81,29 @@ class SpotifyManager:
                 results = self.sp.next(results)
                 tracks.extend(results['items'])
 
+        self.last_tracklist = tracks
         return tracks
+
+    def get_track_features(self, tracks=None):
+        '''Gets a list of tracks and returns a pandas dataframe with features stored in it'''
+        if not tracks:
+            tracks = self.last_tracklist
+        track_features = {}
+
+        for track in tracks:
+            track_id = track['track']['id']
+            track_name = track['track']['name']
+            print(f"{tracks.index(track) + 1} / {len(tracks)} {track_name} (id: {track_id})")
+            features = self.sp.audio_features(track_id)[0]
+            track_features[track_id] = {}
+            track_features[track_id]['song_name'] = track_name
+            for feature in features:
+                track_features[track_id][feature] = features[feature]
+
+        track_df = pd.DataFrame(track_features)
+        track_df = track_df.transpose()
+        self.last_tracklist_df = track_df
+        return track_df
 
     def update_playlist(self, tracklist, target_playlist=None):
         if target_playlist:
@@ -89,6 +111,8 @@ class SpotifyManager:
             self.sp.playlist_change_details(targ, name=f"CUSTOM FOR {datetime.now().strftime('%d %b, %y')}")
 
         else:
-            targ = self.sp.user_playlist_create(user_id, "low energy", public=False)['id']
+            targ = self.sp.user_playlist_create(self.user_id, "low energy", public=False)['id']
 
+        tracklist = tracklist['id'].tolist()
         self.sp.playlist_replace_items(targ, tracklist)
+        print(f"Succesfully added {len(tracklist)} songs to playlist {self.sp.playlist(targ)['name']}")

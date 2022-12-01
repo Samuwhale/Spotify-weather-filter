@@ -174,4 +174,5 @@ class WeatherManager:
             feature_ranges[key] = (
                 np.clip(value - self.treshold, a_min=0, a_max=0.9), (np.clip(value + self.treshold, a_min=0.1, a_max=1)))
 
+        print("Feature ranges are :", feature_ranges)
         return feature_ranges
