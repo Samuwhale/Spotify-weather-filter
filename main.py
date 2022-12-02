@@ -8,8 +8,8 @@ from spotify_manager import SpotifyManager
 
 ### SPOTIFY
 # source and target playlists
-#SOURCES = ['6tTRqTBA9Gb95lgFzWEOT5', '5GP2yjY95zhnFiDXjBdgxu', '12YHegwMeIZJvA95VHmyz6'] #normal playlists
-SOURCES = ['05yEXmAndl3mWwTmOhH4dl']  # small playlist
+SOURCES = ['6tTRqTBA9Gb95lgFzWEOT5', '5GP2yjY95zhnFiDXjBdgxu', '12YHegwMeIZJvA95VHmyz6'] #normal playlists
+#SOURCES = ['05yEXmAndl3mWwTmOhH4dl']  # small playlist
 TARGET = '4rJtEiVdLyiimTiNiAyE5E'
 SONG_TARGET = 50
 
